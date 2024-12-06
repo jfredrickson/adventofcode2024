@@ -14,9 +14,20 @@ if [ ! -d "$DIR" ]; then
   exit 1
 fi
 
-if ! command -v inotifywait &>/dev/null; then
-  echo "Error: inotifywait is not installed. Please install inotify-tools."
-  exit 1
+if [[ "$(uname -s)" == "Linux" ]] ; then
+  if ! command -v inotifywait &>/dev/null; then
+    echo "Error: inotifywait is not installed. Please install inotify-tools."
+    exit 1
+  fi
+  CMD="inotifywait -rq -e modify,create,delete $DIR --format '%w%f'"
+fi
+
+if [[ "$(uname -s)" == "Darwin" ]] ; then
+  if ! command -v fswatch &>/dev/null; then
+    echo "Error: fswatch is not installed. Please install fswatch."
+    exit 1
+  fi
+  CMD="fswatch --one-event --no-defer -r $DIR"
 fi
 
 echo "========================================"
@@ -24,17 +35,18 @@ echo "Watching directory: $DIR"
 echo "Press Ctrl+C to stop."
 echo "========================================"
 
+trap "echo 'Okay, done!'; exit 0" SIGINT
+
 go run "$DIR"
 
 while true; do
-  inotifywait -rq -e modify,create,delete "$DIR" --format '%w%f' |
-    while read -r file; do
-      echo
-      echo "========================================"
-      echo "Detected change in: $file"
-      echo "Running: go run $DIR"
-      echo "========================================"
+  $CMD | while read -r file; do
+    echo
+    echo "========================================"
+    echo "Detected change in: $file"
+    echo "Running: go run $DIR"
+    echo "========================================"
 
-      go run "$DIR"
-    done
+    go run "$DIR"
+  done
 done
