@@ -1,0 +1,10 @@
+go 1.23.4
+
+use (
+	./common
+	./day01
+	./day02
+	./day03
+	./day04
+	./day05
+)
