@@ -6,6 +6,10 @@ import (
 	"strconv"
 )
 
+type Number interface {
+	int
+}
+
 // Read a file line by line, calling the process function on each line
 func ProcessFile(filename string, process func(string)) {
 	file, err := os.Open(filename)
@@ -37,8 +41,7 @@ func ToInts(s []string) []int {
 	return ints
 }
 
-// Absolute value of an int
-func Abs(n int) int {
+func Abs[N Number](n N) N {
 	if n < 0 {
 		return -n
 	}
