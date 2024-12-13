@@ -98,12 +98,12 @@ func main() {
 					nd = plots[ndy][ndx]
 				}
 
-				// If both plots are internal and the diagonal is external, this is a concave corner
+				// If both neighbors are in the same region and the diagonal is not, this is a corner
 				if n1.Plant == plot.Plant && n2.Plant == plot.Plant && nd.Plant != plot.Plant {
 					region.Sides++
 				}
 
-				// If both plots are external, this is a convex corner
+				// If both neighbors are not part of this region, this is a corner
 				if n1.Plant != plot.Plant && n2.Plant != plot.Plant {
 					region.Sides++
 				}
