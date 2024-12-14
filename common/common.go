@@ -47,3 +47,11 @@ func Abs[N Number](n N) N {
 	}
 	return n
 }
+
+func Atoi[N Number](s string) N {
+	val, err := strconv.Atoi(s)
+	if err != nil {
+		panic(err)
+	}
+	return N(val)
+}
