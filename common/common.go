@@ -55,3 +55,11 @@ func Atoi[N Number](s string) N {
 	}
 	return N(val)
 }
+
+func Pow[N Number](base N, exp int) N {
+	a := N(1)
+	for range exp {
+		a *= base
+	}
+	return a
+}
