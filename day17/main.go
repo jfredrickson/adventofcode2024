@@ -3,9 +3,11 @@ package main
 import (
 	"common"
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 func main() {
@@ -42,6 +44,77 @@ func main() {
 
 	cpu.Run(program)
 	fmt.Println("Output:", cpu.Sprint())
+
+	// Part 2
+
+	// This is a brute force method that just won't work in the scale of the real input.
+	// Correct approach might be to reverse the program, running it backwards?
+	// Example of reversed operations:
+	// - XOR is basically the inverse of itself, so the XOR operations can just be performed as is
+	// - Division becomes multiplication
+	// - 'out' instruction basically pops the last element off the output string
+	// - Modulo - not sure yet what to do about that, but keep in mind this is a 3-bit system
+
+	// Set up a function to run as a goroutine
+	run := func(a int) int {
+		c := Reset()
+		c.A = a
+
+		// A debug version of Run() that compares the output with the programData
+		// This saves about 25% of runtime, not enough to matter for the real input
+		for c.Pointer < len(program)-1 {
+			// If the current instruction is 'out', see if the output matches so far
+			if program[c.Pointer] == 5 && strings.Index(programData, c.Sprint()) != 0 {
+				// If it doesn't match, no need to continue with this program
+				return -1
+			}
+			c.Opcodes[program[c.Pointer]](program[c.Pointer+1])
+			c.Pointer += 2
+		}
+
+		if c.Sprint() == programData {
+			return a
+		}
+		return -1
+	}
+
+	// Prepare channels and wait group
+	maxA := math.MaxInt
+	maxConcurrency := 16
+
+	// Run the program with batches of A values
+	found := false
+	lowestA := math.MaxInt
+	for i := 0; i <= maxA && !found; i += maxConcurrency {
+		results := make(chan int, maxConcurrency)
+		var wg sync.WaitGroup
+		for j := 0; j < maxConcurrency; j++ {
+			a := i + j
+			if a > maxA {
+				break
+			}
+			wg.Add(1)
+			go func(a int) {
+				defer wg.Done()
+				results <- run(a)
+			}(a)
+		}
+		wg.Wait()
+		close(results)
+
+		// Find the lowest value of A among this batch
+		for result := range results {
+			if result > -1 && result < lowestA {
+				lowestA = result
+			}
+		}
+
+		if lowestA < maxA {
+			found = true
+		}
+	}
+
+	fmt.Println("Quine register A:", lowestA)
 }
 
 type Opcode func(int)
@@ -72,6 +145,7 @@ func Reset() *CPU {
 	c.Opcodes[7] = c.cdv
 	return &c
 }
+
 func (c *CPU) Run(program []int) {
 	for c.Pointer < len(program)-1 {
 		// fn := strings.Split(runtime.FuncForPC(reflect.ValueOf(c.Opcodes[program[c.Pointer]]).Pointer()).Name(), ".")[2][:3]
@@ -94,8 +168,7 @@ func (c *CPU) Sprint() string {
 }
 
 func (c *CPU) adv(combo int) {
-	res := c.A / common.Pow(2, c.parseCombo(combo))
-	c.A = res
+	c.A = c.A / common.Pow(2, c.parseCombo(combo))
 }
 
 func (c *CPU) bxl(literal int) {
