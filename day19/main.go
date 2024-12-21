@@ -9,52 +9,46 @@ import (
 func main() {
 	available, desired := loadData("day19/input.txt")
 
-	// Create a map to track segments that can be built from available patterns
-	validSegments := make(map[string]bool, 0)
-
-	// Available patterns themselves are always valid segments
+	validSegments := make(map[string]int)
 	for _, a := range available {
-		validSegments[a] = true
+		validSegments[a] = design(a, available, validSegments)
 	}
 
-	count := 0
+	possible := 0
+	combinations := 0
 	for _, d := range desired {
-		found := design(d, available, &validSegments)
-		if found {
-			count++
+		found := design(d, available, validSegments)
+		if found > 0 {
+			possible++
 		}
+		combinations += found
 	}
 
-	fmt.Println("Number of possible designs:", count)
+	fmt.Println("Number of possible designs:", possible)
+	fmt.Println("Number of possible combinations:", combinations)
 }
 
-func design(desired string, available []string, validSegments *map[string]bool) (possible bool) {
-	// Done, no part of the desired pattern remains to check for
+func design(desired string, available []string, validSegments map[string]int) int {
+	// Done, no part of the desired pattern remains to check for, we've found a valid point
 	if len(desired) == 0 {
-		return true
+		return 1
 	}
 
 	// Check if the desired segment is already in the map of valid segments
-	if desiredIsValid, found := (*validSegments)[desired]; found {
-		return desiredIsValid
+	if count, found := validSegments[desired]; found {
+		return count
 	}
 
-	// Check if the desired segment begins with any of the available patterns
+	// Count how many ways the desired segment contains the available patterns
 	for _, a := range available {
 		if strings.HasPrefix(desired, a) {
-			// If so, continue recursing on the remaining segment
-			if design(desired[len(a):], available, validSegments) {
-				// If the remaining segment is valid, cache that it's valid
-				(*validSegments)[desired] = true
-				return true
-			}
+			nextSegment := desired[len(a):]
+			validSegments[desired] += design(nextSegment, available, validSegments)
+			// fmt.Println(validSegments)
 		}
 	}
 
-	// At this point, we know the desired segment can't be built from available patterns
-	(*validSegments)[desired] = false
-
-	return false
+	return validSegments[desired]
 }
 
 func loadData(filename string) (available, desired []string) {
