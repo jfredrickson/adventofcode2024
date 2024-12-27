@@ -23,4 +23,5 @@ use (
 	./day19
 	./day22
 	./day23
+	./day24
 )
